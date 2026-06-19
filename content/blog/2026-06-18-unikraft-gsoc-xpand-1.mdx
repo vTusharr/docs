@@ -1,0 +1,48 @@
+---
+title: "GSoC'26: Expanding the Unikraft Software Support Ecosystem"
+description: |
+  This project aims to add expand the app ecosystem on unikraft.
+publishedDate: 2026-06-19
+[comment]: <> (image: /images/unikraft-gsoc24.png =>  plz update me )
+authors:
+- Tushar Verma
+tags:
+- gsoc
+- gsoc26
+- virtualization
+- apps
+---
+
+## Project Overview
+
+For Unikraft to be a viable alternative to Docker in production, it needs to run the software 
+people actually deploy. Right now the catalog covers the basics  Nginx, Redis, SQLite etc 
+but there are major gaps. You can’t run a DNS server, a message broker, a time sync 
+daemon, or a Git host as a unikernel without doing the porting work yourself. That’s a 
+problem because engineers evaluating unikraft for their stack will look at the catalog and if 
+their workload isn’t there, they move on. 
+
+This project fills those gaps!
+
+## Progress
+- **dnsmasq** — DNS forwarder/cache over UDP+TCP with DNSSEC. Also updated
+  `lib-nettle` to 4.0 ( now its arch independent ) for  crypto, and wired  netlink
+  interface discovery. Builds on x86_64 and arm64 , with CI.
+- **lighttpd** — lightweight web server .
+
+
+## Next Steps
+- Port Chrony, and keep filling catalog gaps.
+- Fix the arm clock which is hindering dnssec on the arm build.
+
+
+## Acknowledgements
+
+Special thanks to Razvan Deaconescu and Răzvan Vîrtan , my two amazing mentors for their support along the way.
+I would also like to thank Alex Andrei Cioc , Cezar Craciunoiu  and the entire Unikraft community for all the work, discussions, and guidance which made this project possible.
+
+## About Me
+
+I'm [Tushar Verma](www.linkedin.com/in/tushar-verma-32847b324), a second-year undergraduate student at IIT Jodhpur.
+I am passionate about  operating systems, systems programming and cloud .
+Outside of tech, I enjoy tinkering, making music, swimming and exploring whatever captures my curiosity at the moment.
