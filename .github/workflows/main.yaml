@@ -12,8 +12,7 @@ on:
 env:
   UKC_TOKEN: ${{ secrets.UKC_TOKEN }}
   UKC_METRO: ${{ secrets.UKC_METRO }}
-  KRAFTKIT_LOG_LEVEL: debug
-  KRAFTKIT_NO_CHECK_UPDATES: "true"
+  UNIKRAFT_LOG_LEVEL: debug
 
 permissions:
   deployments: write
@@ -38,8 +37,11 @@ jobs:
           exit 1
         fi
 
-    - name: Setup KraftKit
-      uses: ./.github/actions/setup-kraftkit
+    - name: Setup Unikraft CLI
+      uses: ./.github/actions/setup-unikraft
+      with:
+        token: ${{ secrets.UKC_TOKEN }}
+        metro: ${{ secrets.UKC_METRO }}
 
     - name: Setup OSS docs website
       id: www
@@ -49,8 +51,6 @@ jobs:
         environment: main
         name: oss-www
         domain: unikraft.org
-        metro: ${{ secrets.UKC_METRO }}
-        log-level: trace
 
     - uses: chrnorm/deployment-action@v2
       name: Create GitHub deployment

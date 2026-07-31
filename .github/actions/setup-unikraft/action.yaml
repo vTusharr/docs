@@ -1,0 +1,47 @@
+name: setup-unikraft
+
+description: |
+  Install the Unikraft CLI and configure a profile for Unikraft Cloud.
+
+inputs:
+  token:
+    required: true
+    description: Unikraft Cloud API token.
+  metro:
+    required: true
+    description: Unikraft Cloud metro endpoint (e.g. https://api.dal2.unikraft.cloud).
+  profile:
+    required: false
+    default: oss-www
+    description: Name of the CLI profile to configure and activate.
+  version:
+    required: false
+    default: latest
+    description: Unikraft CLI version to install.
+
+runs:
+  using: composite
+  steps:
+  - name: Install Unikraft CLI
+    uses: unikraft/setup-action@v1
+    with:
+      version: ${{ inputs.version }}
+
+  - name: Configure profile
+    shell: bash
+    env:
+      UKC_TOKEN: ${{ inputs.token }}
+      UKC_METRO: ${{ inputs.metro }}
+      PROFILE: ${{ inputs.profile }}
+    run: |
+      mkdir -p "$HOME/.config/unikraft"
+      cat > "$HOME/.config/unikraft/config.yaml" << EOF
+      profile: ${PROFILE}
+      profiles:
+        ${PROFILE}:
+          type: cloud
+          token: ${UKC_TOKEN}
+          metros:
+          - name: ${PROFILE}
+            endpoint: ${UKC_METRO}
+      EOF

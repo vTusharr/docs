@@ -13,25 +13,14 @@ inputs:
   domain:
     required: false
     description: The domain to use for the deployment.
-  metro:
-    required: false
-    description: Unikraft Cloud Metro.
-    default: http://api.dal2.unikraft.cloud/v1
   memory:
     required: false
     description: Set the memory size.
-    default: 1536Mi
-  args:
-    required: false
-    description: Optional arguments you pass to kraft cloud deploy.
+    default: 1536M
   port:
     required: false
     description: The port the service listens on.
     default: "3000"
-  log-level:
-    required: false
-    default: error
-    description: Set the logging level.
 
 outputs:
   domain:
@@ -58,39 +47,39 @@ runs:
       set -e;
 
       # Create the service if it does not exist.
-      _SVC=$(kraft cloud --metro "${{ inputs.metro }}" service get "${{ inputs.name }}" -o raw | jq -r '.data.service_groups[].error')
-      if [[ "${_SVC}" == "8" ]]; then
-        if [[ "${{ inputs.domain }}" == "" ]]; then
-          kraft cloud --metro "${{ inputs.metro }}" service create \
-            --subdomain "${{ inputs.name }}" \
-            --name "${{ inputs.name }}" \
-            "443:${{ inputs.port }}" \
-          ;
-        else
-          kraft cloud --metro "${{ inputs.metro }}" service create \
-            --domain "${{ inputs.domain }}" \
-            --name "${{ inputs.name }}" \
-            "443:${{ inputs.port }}" \
-          ;
-        fi
+      if ! unikraft service get "${{ inputs.name }}" -o quiet 2>/dev/null; then
+        unikraft service create \
+          --domains "${{ inputs.domain || inputs.name }}" \
+          --name "${{ inputs.name }}" \
+          --services "443:${{ inputs.port }}/http+tls" \
+        ;
       fi
 
       # Save the generated domain as an output variable
-      echo "domain=$(kraft cloud --metro ${{ inputs.metro }} service get ${{ inputs.name }} -o raw | jq -r '.data.service_groups[0].domains[0].fqdn')" >> $GITHUB_OUTPUT
+      echo "domain=$(unikraft service get ${{ inputs.name }} -o json | jq -r '.[0].domains[0].fqdn')" >> $GITHUB_OUTPUT
 
   - name: Deploy
     id: deploy
     shell: bash
     run: |
-      kraft cloud deploy \
-        --rollout remove \
-        --rollout-qualifier all \
+      unikraft build \
+        --output "oci://internal/${{ inputs.name }}:latest" \
+        .;
+
+      # Remove any existing instance(s) on this service before running the
+      # new one, so the service always ends up with just the latest build.
+      unikraft instance delete \
+        --filter "service.name==${{ inputs.name }}" \
+        --force \
+        2>/dev/null || true;
+
+      unikraft run \
+        --autostart \
+        --restart always \
         --memory "${{ inputs.memory }}" \
         --service "${{ inputs.name }}" \
-        --image "${{ inputs.name }}" \
-        --as kraftfile-runtime \
-        ${{ inputs.args }} \
-        .;
+        --image "internal/${{ inputs.name }}:latest" \
+        ;
 
   - name: Test liveliness
     id: liveliness
@@ -104,7 +93,8 @@ runs:
     if: ${{ steps.liveliness.outcome == 'failure' }}
     shell: bash
     run: |
-      kraft cloud service logs "${{ inputs.name }}"
+      _INST=$(unikraft service get "${{ inputs.name }}" -o json | jq -r '.[0].instances[0].name')
+      unikraft instance logs "${_INST}"
       exit 1
 
   - name: Update Deployment
